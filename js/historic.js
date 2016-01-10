@@ -31,7 +31,7 @@ function initialize() {
 		}
 		);		
 
-	// Start the map in Shenzhen
+	// Start the map in Shenzhenhistoric_data
 	 map.setView(new L.LatLng(51.5072, 0.1275),3);
 
    //some of the configs for the map. There are various other parameters that can be set here
@@ -106,9 +106,7 @@ function initialize() {
    //Storage for WebSocket connections
    var socket3 = io.connect('http://sotonwo.cloudapp.net:3005');
 
-   //We use this to keep track of the data coming in!
-   var timestamp_dist = {};
-   var timeseries = [];
+
 
    //country list
    var country_dist = {};
@@ -157,13 +155,7 @@ function initialize() {
           $("#twitter-pollution-count span").html(Object.keys(country_dist).length);
           
     		  	
-          //timestamp counter:
-          if(timestamp in timestamp_dist){
-              var cnt = timestamp_dist[timestamp];
-              timestamp_dist[timestamp] =cnt + 1
-          }else{
-              timestamp_dist[timestamp] = 1
-          }
+          
 
           //as new data comes in, we need to add it to the mappings of hourly timestamps...
           if(user_id in users_dist){
@@ -210,34 +202,53 @@ function initialize() {
 
   });
 
-
-
   var tweetsPollution = 0;
   
   socket3.on('historic_data', function (databaseDump) {
 
-  console.log("Historic Panoptes Data size:", databaseDump.length)
+  //    console.log("Historic Panoptes Data size:", databaseDump.length)
+     
+
+      //We use this to keep track of the data coming in!
       var timestamp_dist = {};
-      timeseries = [];
-
-        try{
-            console.log(databaseDump)
-           
-            tweetsAll = tweetsAll + 1;
-           
-            counters["tweetsAll"] = tweetsAll;  
+      var timeseries = [];
 
 
-            $("#twitter-pollution-count span").html(tweetsPollution);
+      try{
+            //console.log("database data:"+databaseDump)
+        for(var i=0; i<databaseDump.length; i++) {
+
+            var data = databaseDump[i];
+
+            var tstamp = Date.parse(data)
             
-            var data = databaseDump;
+            var timestamp = new Date(tstamp).format("%Y-%m-%dT%H:00:00");
+         
+            //console.log(timestamp)
+
+            //tweetsAll = tweetsAll + 1;
+           
+            //counters["tweetsAll"] = tweetsAll;  
+
+            //timestamp counter:
+            if(timestamp in timestamp_dist){
+                var cnt = timestamp_dist[timestamp];
+                timestamp_dist[timestamp] =cnt + 1
+            }else{
+                timestamp_dist[timestamp] = 1
+            }
+
+            //$("#twitter-pollution-count span").html(tweetsPollution);
+            
+            //var data = databaseDump;
 
             //we want to add to the scolling data visualisation
-            addHistoricDataOnPollution(data);
-
-          }catch(e){
-            console.log(e);
+            //addHistoricDataOnPollution(data);
           }
+          calcTimeseries(timestamp_dist)
+       }catch(e){
+            console.log(e);
+       }
            
 
     });
@@ -270,7 +281,7 @@ function initialize() {
 
 
   //WE monitor for when different datasets have finsihed loading...
-  socket3.on('finished_sending_data', function (databaseDump) {
+  socket3.on('finished_sending_historic_classification_data', function (databaseDump) {
 
     //we to perform some of the calulations on the time series data
     calcTimeseries();
@@ -292,7 +303,8 @@ function initialize() {
 
 }
 
-function calcTimeseries(){
+function calcTimeseries(timestamp_dist){
+  var timeseries = [];
   for(var key in timestamp_dist){
 
           var cnt = timestamp_dist[key];
@@ -348,7 +360,7 @@ function plotTimeseries(timeseries){
         function doPlot(position) {
             $.plot($("#flot-multiple-axes-chart"), [{
                 data: timeseries,
-                label: "Twitte Activity"
+                label: "Panoptes Activity"
             }], {
                 xaxes: [{
                     mode: 'time'
